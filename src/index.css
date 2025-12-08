@@ -3,5 +3,49 @@
 @tailwind utilities;
 
 body {
-  @apply bg-white text-slate-900;
+  @apply text-slate-900 bg-slate-50;
+  min-height: 100vh;
+}
+
+/* ===== START SCREEN BACKGROUND ===== */
+
+.start-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.start-background::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('./assets/images/background.png');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.85;
+}
+
+/* Light overlay for start screen */
+.start-background::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(ellipse at 50% 50%, rgba(255, 255, 255, 0.3) 0%, transparent 70%),
+    linear-gradient(180deg, 
+      rgba(255, 255, 255, 0.25) 0%, 
+      rgba(255, 255, 255, 0.15) 50%,
+      rgba(255, 255, 255, 0.35) 100%
+    );
+  pointer-events: none;
 }

@@ -23,10 +23,12 @@ npm install
 Create a `.env` file in the project root:
 
 ```
-VITE_OPENROUTER_API_KEY=your_openrouter_api_key_here
+OPENROUTER_API_KEY=your_openrouter_api_key_here
 ```
 
 Get your API key at [openrouter.ai/keys](https://openrouter.ai/keys)
+
+> **Note:** Your API key is kept secure on the backend server and is never exposed to the browser.
 
 ### 3. Run the development server
 
@@ -34,7 +36,21 @@ Get your API key at [openrouter.ai/keys](https://openrouter.ai/keys)
 npm run dev
 ```
 
+This starts both the backend API server (port 3001) and the Vite frontend (port 5174).
+
 The app will be available at `http://localhost:5174`
+
+#### Running servers separately
+
+If you prefer to run the servers in separate terminals:
+
+```bash
+# Terminal 1 - Backend
+npm run dev:backend
+
+# Terminal 2 - Frontend
+npm run dev:frontend
+```
 
 ## Configuring Models
 
