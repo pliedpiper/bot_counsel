@@ -2,9 +2,111 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===== BASE STYLES ===== */
+
 body {
-  @apply text-slate-900 bg-slate-50;
+  @apply text-walnut-900 bg-parchment-100;
+  font-family: 'Lora', Georgia, serif;
   min-height: 100vh;
+}
+
+/* ===== CUSTOM UTILITY CLASSES ===== */
+
+/* Paper texture overlay */
+.paper-texture {
+  position: relative;
+}
+
+.paper-texture::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Warm card style */
+.warm-card {
+  @apply bg-parchment-50 rounded-2xl border border-parchment-300/60;
+  box-shadow: 
+    0 1px 2px rgba(107, 58, 41, 0.04),
+    0 4px 12px rgba(107, 58, 41, 0.08),
+    0 8px 24px rgba(107, 58, 41, 0.04);
+}
+
+/* Handcrafted button base */
+.btn-organic {
+  @apply font-body font-semibold rounded-xl transition-all duration-200;
+  @apply focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-parchment-100;
+}
+
+.btn-primary {
+  @apply btn-organic bg-terracotta-600 text-parchment-50 hover:bg-terracotta-700;
+  @apply focus:ring-terracotta-500;
+  box-shadow: 
+    0 2px 4px rgba(170, 63, 39, 0.2),
+    0 4px 12px rgba(170, 63, 39, 0.15);
+}
+
+.btn-primary:hover {
+  box-shadow: 
+    0 4px 8px rgba(170, 63, 39, 0.25),
+    0 6px 16px rgba(170, 63, 39, 0.2);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  @apply btn-organic bg-parchment-200 text-walnut-700 border border-parchment-400/50;
+  @apply hover:bg-parchment-300 hover:border-parchment-400;
+  @apply focus:ring-walnut-400;
+}
+
+.btn-sage {
+  @apply btn-organic bg-sage-600 text-parchment-50 hover:bg-sage-700;
+  @apply focus:ring-sage-500;
+  box-shadow: 
+    0 2px 4px rgba(93, 108, 76, 0.2),
+    0 4px 12px rgba(93, 108, 76, 0.15);
+}
+
+/* Input styling */
+.input-organic {
+  @apply bg-parchment-50 border-2 border-parchment-300 rounded-xl;
+  @apply text-walnut-800 placeholder:text-walnut-400;
+  @apply focus:outline-none focus:border-terracotta-400 focus:ring-2 focus:ring-terracotta-200;
+  @apply transition-all duration-200;
+}
+
+/* Select dropdown styling */
+.select-organic {
+  @apply input-organic appearance-none cursor-pointer;
+  @apply hover:border-parchment-400;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-parchment-200 rounded-full;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-walnut-300 rounded-full;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-walnut-400;
 }
 
 /* ===== START SCREEN BACKGROUND ===== */
@@ -26,13 +128,19 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: url('./assets/images/background.png');
-  background-size: cover;
-  background-position: center;
-  opacity: 0.85;
+  background: 
+    radial-gradient(ellipse at 30% 20%, rgba(237, 143, 121, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(235, 200, 106, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(184, 149, 120, 0.08) 0%, transparent 60%),
+    linear-gradient(180deg, 
+      #fdf8f3 0%, 
+      #f9ede0 30%,
+      #f2d9c0 70%,
+      #e8bf96 100%
+    );
 }
 
-/* Light overlay for start screen */
+/* Organic decorative shapes */
 .start-background::after {
   content: '';
   position: absolute;
@@ -40,12 +148,106 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: 
-    radial-gradient(ellipse at 50% 50%, rgba(255, 255, 255, 0.3) 0%, transparent 70%),
-    linear-gradient(180deg, 
-      rgba(255, 255, 255, 0.25) 0%, 
-      rgba(255, 255, 255, 0.15) 50%,
-      rgba(255, 255, 255, 0.35) 100%
-    );
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.04;
   pointer-events: none;
 }
+
+/* ===== DECORATIVE ELEMENTS ===== */
+
+/* Leaf accent */
+.leaf-accent {
+  position: relative;
+}
+
+.leaf-accent::before {
+  content: '🌿';
+  position: absolute;
+  font-size: 1.5rem;
+  opacity: 0.6;
+}
+
+/* Hand-drawn underline effect */
+.hand-underline {
+  position: relative;
+  display: inline-block;
+}
+
+.hand-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    currentColor 10%, 
+    currentColor 90%, 
+    transparent 100%
+  );
+  border-radius: 2px;
+  opacity: 0.4;
+  transform: rotate(-0.5deg);
+}
+
+/* Warm glow effect */
+.warm-glow {
+  box-shadow: 
+    0 0 20px rgba(237, 143, 121, 0.15),
+    0 0 40px rgba(235, 200, 106, 0.1),
+    0 0 60px rgba(184, 149, 120, 0.05);
+}
+
+/* ===== ANIMATIONS ===== */
+
+@keyframes gentle-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes warm-pulse {
+  0%, 100% {
+    box-shadow: 
+      0 0 20px rgba(237, 143, 121, 0.15),
+      0 0 40px rgba(235, 200, 106, 0.1);
+  }
+  50% {
+    box-shadow: 
+      0 0 30px rgba(237, 143, 121, 0.2),
+      0 0 60px rgba(235, 200, 106, 0.15);
+  }
+}
+
+.animate-gentle-float {
+  animation: gentle-float 4s ease-in-out infinite;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out forwards;
+}
+
+.animate-warm-pulse {
+  animation: warm-pulse 3s ease-in-out infinite;
+}
+
+/* Staggered animation delays */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
