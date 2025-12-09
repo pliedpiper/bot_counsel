@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react'
-import { Copy, Send, ChevronDown, Loader2, Leaf, Globe, MessageSquare, Settings, Info, Sparkles } from 'lucide-react'
+import { Copy, Send, ChevronDown, Loader2, Leaf, Globe, MessageSquare, Settings, Info, Sparkles, ArrowRightLeft } from 'lucide-react'
+import DualAgentChat from './DualAgentChat'
 
 // Navigation Bar Component
-const Navbar = ({ transparent = false }) => {
+const Navbar = ({ transparent = false, currentPage = 'council', onNavigate }) => {
   const navLinks = [
-    { name: 'Council', href: '#', icon: MessageSquare, active: true },
-    { name: 'Settings', href: '#', icon: Settings, active: false },
-    { name: 'About', href: '#', icon: Info, active: false },
+    { name: 'Council', page: 'council', icon: MessageSquare },
+    { name: 'Dual Agent', page: 'dual-agent', icon: ArrowRightLeft },
+    { name: 'Settings', page: 'settings', icon: Settings },
+    { name: 'About', page: 'about', icon: Info },
   ]
 
   return (
@@ -18,28 +20,31 @@ const Navbar = ({ transparent = false }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo / Brand */}
-          <div className="flex items-center gap-2">
+          <button 
+            onClick={() => onNavigate('council')}
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+          >
             <Leaf size={24} className="text-sage-600" />
             <span className="text-xl font-display font-bold tracking-tight text-walnut-800">
               Bot Council
             </span>
-          </div>
+          </button>
 
           {/* Navigation Links */}
           <div className="flex items-center gap-1">
             {navLinks.map((link) => (
-              <a
+              <button
                 key={link.name}
-                href={link.href}
+                onClick={() => onNavigate(link.page)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                  link.active
+                  currentPage === link.page
                     ? 'bg-terracotta-100 text-terracotta-700 border border-terracotta-200/50'
                     : 'text-walnut-600 hover:bg-parchment-200 hover:text-walnut-800'
                 }`}
               >
                 <link.icon size={18} />
                 <span className="hidden sm:inline">{link.name}</span>
-              </a>
+              </button>
             ))}
           </div>
         </div>
@@ -49,6 +54,7 @@ const Navbar = ({ transparent = false }) => {
 }
 
 const BotCounsel = () => {
+  const [currentPage, setCurrentPage] = useState('council')
   const [hasStarted, setHasStarted] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [prompt, setPrompt] = useState('')
@@ -59,6 +65,14 @@ const BotCounsel = () => {
   const [webSearchEnabled, setWebSearchEnabled] = useState(false)
   const [reviewResponse, setReviewResponse] = useState('')
   const [reviewLoading, setReviewLoading] = useState(false)
+
+  const handleNavigate = (page) => {
+    setCurrentPage(page)
+    // Auto-start if navigating to dual-agent or other pages
+    if (page !== 'council' && !hasStarted) {
+      setHasStarted(true)
+    }
+  }
 
   const handleStart = () => {
     setIsTransitioning(true)
@@ -343,7 +357,7 @@ Please provide a synthesized, improved response that represents the best combine
         <div className="start-background" aria-hidden="true" />
         
         {/* Navbar - transparent on start screen */}
-        <Navbar transparent />
+        <Navbar transparent currentPage={currentPage} onNavigate={handleNavigate} />
         
         <div className="min-h-screen flex flex-col items-center justify-center px-4 font-body relative pt-16">
           {/* Main content container */}
@@ -389,10 +403,37 @@ Please provide a synthesized, improved response that represents the best combine
     )
   }
 
+  // Render Dual Agent Chat page
+  if (currentPage === 'dual-agent') {
+    return (
+      <>
+        <Navbar currentPage={currentPage} onNavigate={handleNavigate} />
+        <DualAgentChat />
+      </>
+    )
+  }
+
+  // Placeholder pages for Settings and About
+  if (currentPage === 'settings' || currentPage === 'about') {
+    return (
+      <>
+        <Navbar currentPage={currentPage} onNavigate={handleNavigate} />
+        <div className="min-h-screen bg-parchment-100 flex flex-col items-center justify-center pt-16 font-body">
+          <div className="warm-card paper-texture p-12 text-center">
+            <h2 className="text-2xl font-display font-bold text-walnut-800 mb-4">
+              {currentPage === 'settings' ? 'Settings' : 'About'}
+            </h2>
+            <p className="text-walnut-600">Coming soon...</p>
+          </div>
+        </div>
+      </>
+    )
+  }
+
   return (
     <>
       {/* Navbar - solid on main view */}
-      <Navbar />
+      <Navbar currentPage={currentPage} onNavigate={handleNavigate} />
       
       <div className="min-h-screen bg-parchment-100 flex flex-col items-center pt-24 pb-10 px-4 font-body text-walnut-900">
         {/* Subtle background pattern */}
