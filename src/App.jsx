@@ -1,5 +1,52 @@
 import React, { useState, useEffect } from 'react'
-import { Copy, Send, ChevronDown, Loader2, Sparkles } from 'lucide-react'
+import { Copy, Send, ChevronDown, Loader2, Sparkles, Globe, MessageSquare, Settings, Info } from 'lucide-react'
+
+// Navigation Bar Component
+const Navbar = ({ transparent = false }) => {
+  const navLinks = [
+    { name: 'Council', href: '#', icon: MessageSquare, active: true },
+    { name: 'Settings', href: '#', icon: Settings, active: false },
+    { name: 'About', href: '#', icon: Info, active: false },
+  ]
+
+  return (
+    <nav className={`fixed top-0 left-0 right-0 z-50 ${transparent ? 'bg-white/10 backdrop-blur-md' : 'bg-white shadow-md'}`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo / Brand */}
+          <div className="flex items-center gap-2">
+            <Sparkles size={24} className={transparent ? 'text-slate-700' : 'text-blue-600'} />
+            <span className={`text-xl font-bold tracking-tight ${transparent ? 'text-slate-800' : 'text-slate-800'}`}>
+              Bot Council
+            </span>
+          </div>
+
+          {/* Navigation Links */}
+          <div className="flex items-center gap-1">
+            {navLinks.map((link) => (
+              <a
+                key={link.name}
+                href={link.href}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  link.active
+                    ? transparent
+                      ? 'bg-white/20 text-slate-800'
+                      : 'bg-blue-50 text-blue-700'
+                    : transparent
+                      ? 'text-slate-600 hover:bg-white/10 hover:text-slate-800'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800'
+                }`}
+              >
+                <link.icon size={18} />
+                <span className="hidden sm:inline">{link.name}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
+    </nav>
+  )
+}
 
 const BotCounsel = () => {
   const [hasStarted, setHasStarted] = useState(false)
@@ -9,6 +56,7 @@ const BotCounsel = () => {
   const [selectedModels, setSelectedModels] = useState(['', '', '', ''])
   const [responses, setResponses] = useState(['', '', '', ''])
   const [loading, setLoading] = useState([false, false, false, false])
+  const [webSearchEnabled, setWebSearchEnabled] = useState(false)
 
   const handleStart = () => {
     setIsTransitioning(true)
@@ -29,9 +77,18 @@ const BotCounsel = () => {
         })
         setAvailableModels(models)
         // Set default selections for each panel
-        if (models.length >= 4) {
-          setSelectedModels([models[0].id, models[1].id, models[2].id, models[3].id])
-        }
+        const defaultModelIds = [
+          'openai/gpt-5.1',
+          'anthropic/claude-opus-4.5',
+          'google/gemini-3-pro-preview',
+          'x-ai/grok-4'
+        ]
+        // Use defaults if available, otherwise fall back to first 4 models
+        const defaults = defaultModelIds.map((id, idx) => {
+          const found = models.find((m) => m.id === id)
+          return found ? found.id : (models[idx]?.id || '')
+        })
+        setSelectedModels(defaults)
       })
       .catch((err) => console.error('Failed to load models:', err))
   }, [])
@@ -48,6 +105,33 @@ const BotCounsel = () => {
     return model?.name || null
   }
 
+  // Render text with clickable links
+  const renderTextWithLinks = (text) => {
+    if (!text) return null
+    // URL regex pattern
+    const urlPattern = /(https?:\/\/[^\s<>"{}|\\^`[\]]+)/g
+    const parts = text.split(urlPattern)
+    
+    return parts.map((part, index) => {
+      if (urlPattern.test(part)) {
+        // Reset lastIndex since we're reusing the regex
+        urlPattern.lastIndex = 0
+        return (
+          <a
+            key={index}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 underline break-all"
+          >
+            {part}
+          </a>
+        )
+      }
+      return part
+    })
+  }
+
   const handleModelChange = (panelIndex, modelId) => {
     setSelectedModels((prev) => {
       const updated = [...prev]
@@ -56,7 +140,7 @@ const BotCounsel = () => {
     })
   }
 
-  const streamResponse = async (panelIndex, model, userPrompt) => {
+  const streamResponse = async (panelIndex, model, userPrompt, useWebSearch) => {
     // Set loading state
     setLoading((prev) => {
       const updated = [...prev]
@@ -84,6 +168,7 @@ const BotCounsel = () => {
               content: userPrompt,
             },
           ],
+          webSearch: useWebSearch,
         }),
       })
 
@@ -147,7 +232,7 @@ const BotCounsel = () => {
     // Start streaming for all 4 models in parallel
     selectedModels.forEach((model, index) => {
       if (model) {
-        streamResponse(index, model, prompt)
+        streamResponse(index, model, prompt, webSearchEnabled)
       }
     })
 
@@ -162,7 +247,10 @@ const BotCounsel = () => {
         {/* Background for Start Screen */}
         <div className="start-background" aria-hidden="true" />
         
-        <div className="min-h-screen flex flex-col items-center justify-center px-4 font-sans relative">
+        {/* Navbar - transparent on start screen */}
+        <Navbar transparent />
+        
+        <div className="min-h-screen flex flex-col items-center justify-center px-4 font-sans relative pt-16">
           {/* Main content container */}
           <div className="text-center z-10 relative px-12 py-14 rounded-3xl bg-white/25 backdrop-blur-[2px] shadow-lg shadow-black/5 border border-white/20">
             {/* Title */}
@@ -197,12 +285,12 @@ const BotCounsel = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center py-10 px-4 font-sans text-slate-900">
-      <h1 className="text-4xl font-extrabold mb-12 tracking-tight text-slate-800">
-        Bot Council
-      </h1>
-
-      <div className="w-full max-w-[1600px] grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-16">
+    <>
+      {/* Navbar - solid on main view */}
+      <Navbar />
+      
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center pt-24 pb-10 px-4 font-sans text-slate-900">
+        <div className="w-full max-w-[1600px] grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-16">
         {panels.map((panel, index) => (
           <div
             key={panel.id}
@@ -240,7 +328,7 @@ const BotCounsel = () => {
                     <span className="font-medium">Generating...</span>
                   </div>
                 ) : responses[index] ? (
-                  <p className="text-slate-700 whitespace-pre-wrap text-sm leading-relaxed">{responses[index]}</p>
+                  <p className="text-slate-700 whitespace-pre-wrap text-sm leading-relaxed">{renderTextWithLinks(responses[index])}</p>
                 ) : (
                   <p className="text-slate-400 font-medium">Response will appear here...</p>
                 )}
@@ -277,26 +365,42 @@ const BotCounsel = () => {
             />
           </div>
 
-          <button
-            onClick={handleSend}
-            disabled={loading.some((l) => l)}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white font-medium py-3 px-6 rounded-xl flex items-center gap-2 shadow-md h-12 mb-px shrink-0"
-          >
-            {loading.some((l) => l) ? (
-              <>
-                <Loader2 size={18} className="animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                Send Prompt
-                <Send size={18} />
-              </>
-            )}
-          </button>
+          <div className="flex flex-col gap-2 shrink-0">
+            <button
+              onClick={() => setWebSearchEnabled(!webSearchEnabled)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
+                webSearchEnabled
+                  ? 'bg-emerald-500 text-white shadow-md'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300'
+              }`}
+              title="Enable web search for real-time information"
+            >
+              <Globe size={18} />
+              <span className="text-sm">{webSearchEnabled ? 'Web Search On' : 'Web Search'}</span>
+            </button>
+
+            <button
+              onClick={handleSend}
+              disabled={loading.some((l) => l)}
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white font-medium py-3 px-6 rounded-xl flex items-center gap-2 shadow-md h-12 shrink-0"
+            >
+              {loading.some((l) => l) ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  Send Prompt
+                  <Send size={18} />
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>
+    </>
   )
 }
 

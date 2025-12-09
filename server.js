@@ -17,7 +17,7 @@ app.get('/api/health', (req, res) => {
 
 // Streaming chat completion endpoint
 app.post('/api/chat', async (req, res) => {
-  const { model, messages } = req.body
+  const { model, messages, webSearch } = req.body
 
   if (!model || !messages) {
     return res.status(400).json({ error: 'Model and messages are required' })
@@ -29,6 +29,24 @@ app.post('/api/chat', async (req, res) => {
     return res.status(500).json({ error: 'API key not configured on server' })
   }
 
+  // Build request body
+  const requestBody = {
+    model,
+    messages,
+    stream: true,
+  }
+
+  // Add web search plugin if enabled
+  if (webSearch) {
+    requestBody.plugins = [
+      {
+        id: 'web',
+        max_results: 5,
+        search_prompt: 'Here are some relevant web search results to help answer the question:'
+      }
+    ]
+  }
+
   try {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -38,11 +56,7 @@ app.post('/api/chat', async (req, res) => {
         'HTTP-Referer': process.env.APP_URL || 'http://localhost:5174',
         'X-Title': 'Bot Council',
       },
-      body: JSON.stringify({
-        model,
-        messages,
-        stream: true,
-      }),
+      body: JSON.stringify(requestBody),
     })
 
     if (!response.ok) {
@@ -90,5 +104,6 @@ app.post('/api/chat', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Backend server running on http://localhost:${PORT}`)
 })
+
 
 
