@@ -46,10 +46,10 @@ const DualAgentChat = () => {
       .catch((err) => console.error('Failed to load models:', err))
   }, [])
 
-  const getModelName = (modelId) => {
+  const getModelName = useCallback((modelId) => {
     const model = availableModels.find((m) => m.id === modelId)
     return model?.name || modelId
-  }
+  }, [availableModels])
 
   const streamMessage = useCallback(async (model, messages, signal) => {
     const response = await fetch('/api/chat', {
@@ -117,12 +117,29 @@ const DualAgentChat = () => {
     abortControllerRef.current = new AbortController()
     const signal = abortControllerRef.current.signal
 
-    // System prompts to set up the debate context
-    const systemPromptA = `You are engaging in a thoughtful discussion with another AI. Respond to the previous message concisely but thoughtfully. If this is the start of the discussion, respond to the topic provided. Keep your responses focused and under 200 words to maintain a dynamic conversation. Express your perspective clearly and ask thought-provoking questions when appropriate.`
-    
-    const systemPromptB = `You are engaging in a thoughtful discussion with another AI. Respond to the previous message concisely but thoughtfully. Keep your responses focused and under 200 words to maintain a dynamic conversation. Offer alternative perspectives, build on ideas, or respectfully challenge points made. Express your viewpoint clearly.`
+    const modelAName = getModelName(modelA)
+    const modelBName = getModelName(modelB)
 
-    let conversationHistory = []
+    // Enhanced system prompts that emphasize memory and context awareness
+    const createSystemPrompt = (yourName, otherName, isModelA) => `You are ${yourName}, engaging in an ongoing discussion with ${otherName} (another AI assistant).
+
+IMPORTANT - CONVERSATION MEMORY:
+- You must remember and reference your previous statements throughout this conversation
+- Build upon your earlier points and maintain consistency with what you've said before
+- Acknowledge and respond directly to specific points ${otherName} has made
+- Reference earlier parts of the discussion when relevant
+
+Your role in this discussion:
+${isModelA 
+  ? '- Lead with clear, well-reasoned positions\n- Ask thought-provoking questions to deepen the dialogue\n- Develop and evolve your arguments as the conversation progresses'
+  : '- Offer alternative perspectives and build on ideas\n- Respectfully challenge points when you disagree\n- Find common ground while maintaining your distinct viewpoint'}
+
+Keep responses focused (under 200 words) but substantive. Express your perspective clearly while engaging genuinely with ${otherName}'s contributions.`
+
+    // Maintain separate conversation memories for each model's perspective
+    let conversationHistoryA = [] // Model A's memory (its own messages as assistant)
+    let conversationHistoryB = [] // Model B's memory (its own messages as assistant)
+    let fullConversation = []     // Full conversation for display
     
     // Add initial prompt as the starting point
     const initialMessage = {
@@ -133,7 +150,7 @@ const DualAgentChat = () => {
     }
     
     setConversation([initialMessage])
-    conversationHistory.push(initialMessage)
+    fullConversation.push(initialMessage)
 
     try {
       for (let turn = 0; turn < maxTurns; turn++) {
@@ -142,21 +159,61 @@ const DualAgentChat = () => {
         // Determine current speaker
         const isModelATurn = turn % 2 === 0
         const currentModel = isModelATurn ? modelA : modelB
-        const currentSystemPrompt = isModelATurn ? systemPromptA : systemPromptB
         const speakerLabel = isModelATurn ? 'A' : 'B'
+        const currentName = isModelATurn ? modelAName : modelBName
+        const otherName = isModelATurn ? modelBName : modelAName
 
         setCurrentTurn(turn + 1)
         setCurrentSpeaker(speakerLabel)
         setStreamingMessage('')
 
-        // Build messages for the API call
-        const apiMessages = [
-          { role: 'system', content: currentSystemPrompt },
-          ...conversationHistory.map(msg => ({
-            role: msg.speaker === 'user' ? 'user' : (msg.speaker === speakerLabel ? 'assistant' : 'user'),
-            content: msg.content
-          }))
-        ]
+        // Build messages for the API call with proper memory context
+        const systemPrompt = createSystemPrompt(currentName, otherName, isModelATurn)
+        
+        // Build the conversation from this model's perspective
+        // Each model sees its own messages as 'assistant' and others as 'user'
+        const apiMessages = [{ role: 'system', content: systemPrompt }]
+        
+        // For proper role alternation, we need to group messages correctly
+        // Start with the initial topic
+        let lastRole = null
+        let pendingContent = ''
+        
+        for (const msg of fullConversation) {
+          let msgRole
+          let msgContent = msg.content
+          
+          if (msg.speaker === 'user') {
+            // Initial prompt is always from user
+            msgRole = 'user'
+            msgContent = `[Discussion Topic]: ${msg.content}`
+          } else if (msg.speaker === speakerLabel) {
+            // This model's own previous messages
+            msgRole = 'assistant'
+            msgContent = msg.content
+          } else {
+            // Other model's messages - presented as user with speaker label
+            msgRole = 'user'
+            msgContent = `[${otherName}]: ${msg.content}`
+          }
+          
+          // Handle consecutive same-role messages by combining them
+          if (lastRole === msgRole) {
+            pendingContent += '\n\n' + msgContent
+          } else {
+            // Push pending content if exists
+            if (pendingContent) {
+              apiMessages.push({ role: lastRole, content: pendingContent })
+            }
+            pendingContent = msgContent
+            lastRole = msgRole
+          }
+        }
+        
+        // Push any remaining pending content
+        if (pendingContent) {
+          apiMessages.push({ role: lastRole, content: pendingContent })
+        }
 
         // Stream the response
         const responseContent = await streamMessage(currentModel, apiMessages, signal)
@@ -172,8 +229,8 @@ const DualAgentChat = () => {
           turn: turn + 1,
         }
 
-        conversationHistory.push(newMessage)
-        setConversation([...conversationHistory])
+        fullConversation.push(newMessage)
+        setConversation([...fullConversation])
         setStreamingMessage('')
 
         // Small delay between turns for readability
@@ -198,7 +255,7 @@ const DualAgentChat = () => {
       setStreamingMessage('')
       abortControllerRef.current = null
     }
-  }, [modelA, modelB, initialPrompt, maxTurns, streamMessage])
+  }, [modelA, modelB, initialPrompt, maxTurns, streamMessage, getModelName])
 
   const stopConversation = useCallback(() => {
     if (abortControllerRef.current) {
