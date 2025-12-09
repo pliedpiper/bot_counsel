@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Copy, Send, ChevronDown, Loader2, Sparkles, Globe, MessageSquare, Settings, Info } from 'lucide-react'
+import { Copy, Send, ChevronDown, Loader2, Sparkles, Globe, MessageSquare, Settings, Info, Zap } from 'lucide-react'
 
 // Navigation Bar Component
 const Navbar = ({ transparent = false }) => {
@@ -57,6 +57,8 @@ const BotCounsel = () => {
   const [responses, setResponses] = useState(['', '', '', ''])
   const [loading, setLoading] = useState([false, false, false, false])
   const [webSearchEnabled, setWebSearchEnabled] = useState(false)
+  const [reviewResponse, setReviewResponse] = useState('')
+  const [reviewLoading, setReviewLoading] = useState(false)
 
   const handleStart = () => {
     setIsTransitioning(true)
@@ -240,6 +242,99 @@ const BotCounsel = () => {
     setPrompt('')
   }
 
+  const handleReview = async () => {
+    // Check if we have at least one response to review
+    const filledResponses = responses.filter((r) => r && !r.startsWith('Error:'))
+    if (filledResponses.length === 0) {
+      alert('Please generate responses first before reviewing')
+      return
+    }
+
+    setReviewLoading(true)
+    setReviewResponse('')
+
+    // Build the review prompt with all model outputs
+    const modelOutputs = responses
+      .map((response, index) => {
+        const modelName = getModelName(selectedModels[index]) || `Model ${index + 1}`
+        if (response && !response.startsWith('Error:')) {
+          return `=== ${modelName} ===\n${response}`
+        }
+        return null
+      })
+      .filter(Boolean)
+      .join('\n\n')
+
+    const reviewPrompt = `You are an expert AI response synthesizer. Analyze the following responses from different AI models to the same prompt and create a single, improved response that:
+
+1. Combines the best insights from each model
+2. Corrects any errors or inaccuracies
+3. Provides the most comprehensive and accurate answer
+4. Maintains clarity and coherence
+
+Here are the model responses:
+
+${modelOutputs}
+
+Please provide a synthesized, improved response that represents the best combined output:`
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-3-pro-preview',
+          messages: [
+            {
+              role: 'user',
+              content: reviewPrompt,
+            },
+          ],
+          webSearch: false,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.text()
+        throw new Error(`API error: ${response.status} - ${error}`)
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n').filter((line) => line.trim() !== '')
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6)
+            if (data === '[DONE]') continue
+
+            try {
+              const parsed = JSON.parse(data)
+              const content = parsed.choices?.[0]?.delta?.content
+              if (content) {
+                setReviewResponse((prev) => prev + content)
+              }
+            } catch (e) {
+              // Skip malformed JSON chunks
+            }
+          }
+        }
+      }
+    } catch (error) {
+      setReviewResponse(`Error: ${error.message}`)
+    } finally {
+      setReviewLoading(false)
+    }
+  }
+
   // Start Screen Component
   if (!hasStarted) {
     return (
@@ -396,9 +491,61 @@ const BotCounsel = () => {
                 </>
               )}
             </button>
+
+            <button
+              onClick={handleReview}
+              disabled={loading.some((l) => l) || reviewLoading || !responses.some((r) => r && !r.startsWith('Error:'))}
+              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:from-purple-400 disabled:to-indigo-400 disabled:cursor-not-allowed text-white font-medium py-3 px-6 rounded-xl flex items-center gap-2 shadow-md h-12 shrink-0"
+              title="Analyze all responses with Gemini and create a combined, improved response"
+            >
+              {reviewLoading ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  Reviewing...
+                </>
+              ) : (
+                <>
+                  Review
+                  <Zap size={18} />
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Review Output Panel */}
+      {(reviewResponse || reviewLoading) && (
+        <div className="w-full max-w-4xl mt-6 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl p-6 shadow-lg border border-purple-200">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Zap size={20} className="text-purple-600" />
+              <h3 className="font-bold text-lg text-purple-800">Synthesized Review</h3>
+              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">
+                Gemini 3 Pro Preview
+              </span>
+            </div>
+            <button 
+              onClick={() => navigator.clipboard.writeText(reviewResponse)}
+              className="p-2 rounded-lg hover:bg-purple-100 text-purple-500 hover:text-purple-700 transition-colors"
+              title="Copy to clipboard"
+            >
+              <Copy size={18} />
+            </button>
+          </div>
+          
+          <div className="bg-white/60 rounded-xl p-4 border border-purple-100 max-h-96 overflow-y-auto">
+            {reviewLoading && !reviewResponse ? (
+              <div className="flex items-center gap-2 text-purple-500">
+                <Loader2 size={16} className="animate-spin" />
+                <span className="font-medium">Analyzing and synthesizing responses...</span>
+              </div>
+            ) : (
+              <p className="text-slate-700 whitespace-pre-wrap text-sm leading-relaxed">{renderTextWithLinks(reviewResponse)}</p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
     </>
   )
