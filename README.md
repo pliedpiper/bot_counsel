@@ -154,15 +154,6 @@ The backend server proxies all API requests to OpenRouter, keeping your API key 
 
 See [OpenRouter documentation](https://openrouter.ai/docs) for API-specific issues.
 
-## Roadmap
-
-- [ ] Add screenshot/GIF to README
-- [ ] Conversation history persistence (localStorage)
-- [ ] Export conversations to Markdown
-- [ ] Dark mode support
-- [ ] Cost tracking per model
-- [ ] Unit and integration tests
-
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
