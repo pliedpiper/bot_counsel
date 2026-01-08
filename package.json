@@ -1,7 +1,7 @@
 {
   "name": "bot_counsel",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "run-p dev:backend dev:frontend",
@@ -12,7 +12,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@openrouter/sdk": "^0.2.9",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
